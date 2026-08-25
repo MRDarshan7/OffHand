@@ -1,6 +1,6 @@
 # OFFHAND
 
-An offline-first, on-device voice assistant for Android.
+An offline-first, on-device voice assistant for Android
 
 ```
 push-to-talk voice → on-device ASR (Vosk)
