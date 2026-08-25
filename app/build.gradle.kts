@@ -20,6 +20,7 @@ fun prop(key: String, default: String): String =
 android {
     namespace = "com.offhand"
     compileSdk = 35
+    ndkVersion = "27.2.12479018"
 
     defaultConfig {
         applicationId = "com.offhand"
@@ -42,6 +43,29 @@ android {
         // a real phone points at the laptop's LAN IP via local.properties.
         buildConfigField("String", "BRIDGE_HOST", "\"${prop("offhand.bridge.host", "10.0.2.2")}\"")
         buildConfigField("int", "BRIDGE_PORT", prop("offhand.bridge.port", "8787"))
+
+        // llama.cpp JNI: target hardware is arm64 phones. (Consequence:
+        // the APK no longer installs on x86 emulators — device-only.)
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
+        externalNativeBuild {
+            cmake {
+                arguments += listOf(
+                    "-DGGML_OPENMP=OFF",
+                    "-DGGML_NATIVE=OFF",
+                    "-DLLAMA_CURL=OFF",
+                )
+                cppFlags += "-std=c++17"
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 
     buildTypes {
