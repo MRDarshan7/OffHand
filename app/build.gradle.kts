@@ -37,6 +37,11 @@ android {
         buildConfigField("String", "SMTP_PASS", "\"${prop("offhand.smtp.pass", "")}\"")
         buildConfigField("String", "SMTP_FROM", "\"${prop("offhand.smtp.from", "offhand@test.local")}\"")
         buildConfigField("boolean", "SMTP_STARTTLS", prop("offhand.smtp.starttls", "false"))
+
+        // Laptop bridge daemon. 10.0.2.2 is the emulator's host loopback;
+        // a real phone points at the laptop's LAN IP via local.properties.
+        buildConfigField("String", "BRIDGE_HOST", "\"${prop("offhand.bridge.host", "10.0.2.2")}\"")
+        buildConfigField("int", "BRIDGE_PORT", prop("offhand.bridge.port", "8787"))
     }
 
     buildTypes {
@@ -94,6 +99,9 @@ dependencies {
     // SMTP delivery (JavaMail's Android build; STARTTLS-capable).
     implementation("com.sun.mail:android-mail:1.6.7")
     implementation("com.sun.mail:android-activation:1.6.7")
+
+    // Laptop bridge HTTP client.
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     testImplementation(libs.junit)
 
