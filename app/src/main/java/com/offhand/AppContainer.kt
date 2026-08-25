@@ -6,10 +6,14 @@ import com.offhand.action.ActionCoordinator
 import com.offhand.action.ActionExecutor
 import com.offhand.action.ActionRepository
 import com.offhand.action.CalendarExecutor
+import com.offhand.action.ClipboardExecutor
 import com.offhand.action.EmailExecutor
+import com.offhand.action.FetchFileExecutor
 import com.offhand.action.NoteExecutor
 import com.offhand.action.ReminderExecutor
 import com.offhand.action.SmtpConfig
+import com.offhand.bridge.HttpBridgeClient
+import com.offhand.bridge.LaptopBridge
 import com.offhand.audio.AsrEngine
 import com.offhand.data.ActionDao
 import com.offhand.data.ContactDao
@@ -64,6 +68,9 @@ class AppContainer(context: Context) {
         ActionType.CAPTURE_NOTE to NoteExecutor(noteDao),
     )
 
+    val laptopBridge: LaptopBridge =
+        HttpBridgeClient(BuildConfig.BRIDGE_HOST, BuildConfig.BRIDGE_PORT)
+
     /** Executors that need a network; the dispatch worker looks up here. */
     val networkExecutors: Map<ActionType, ActionExecutor> = mapOf(
         ActionType.SEND_EMAIL to EmailExecutor(
@@ -76,7 +83,12 @@ class AppContainer(context: Context) {
                 starttls = BuildConfig.SMTP_STARTTLS,
             ),
         ),
-        // M5 adds the laptop-bridge executors.
+        ActionType.FETCH_LAPTOP_FILE to FetchFileExecutor(
+            laptopBridge,
+            actionDao,
+            appContext.filesDir.resolve("bridge"),
+        ),
+        ActionType.GET_LAPTOP_CLIPBOARD to ClipboardExecutor(laptopBridge, noteDao),
     )
 
     val dispatcher = Dispatcher(appContext, actionRepository, appScope)
