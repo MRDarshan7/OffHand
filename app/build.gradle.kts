@@ -103,6 +103,13 @@ dependencies {
     // Laptop bridge HTTP client.
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
+    // Camera capture + on-device text recognition (bundled model, offline).
+    implementation("androidx.camera:camera-core:1.4.1")
+    implementation("androidx.camera:camera-camera2:1.4.1")
+    implementation("androidx.camera:camera-lifecycle:1.4.1")
+    implementation("androidx.camera:camera-view:1.4.1")
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+
     testImplementation(libs.junit)
 
     debugImplementation(libs.androidx.compose.ui.tooling)

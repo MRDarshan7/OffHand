@@ -36,7 +36,7 @@ import java.time.LocalDateTime
  */
 class AppContainer(context: Context) {
 
-    private val appContext = context.applicationContext
+    val appContext: Context = context.applicationContext
 
     val database: OffhandDatabase = Room.databaseBuilder(
         appContext,

@@ -8,4 +8,5 @@ package com.offhand.debug
 sealed interface DebugCommand {
     data class InjectTranscript(val text: String) : DebugCommand
     data class InjectWav(val path: String) : DebugCommand
+    data class InjectOcrImage(val path: String) : DebugCommand
 }

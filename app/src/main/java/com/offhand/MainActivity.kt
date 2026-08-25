@@ -46,6 +46,7 @@ class MainActivity : ComponentActivity() {
             add(Manifest.permission.RECORD_AUDIO)
             add(Manifest.permission.READ_CALENDAR)
             add(Manifest.permission.WRITE_CALENDAR)
+            add(Manifest.permission.CAMERA)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 add(Manifest.permission.POST_NOTIFICATIONS)
             }
@@ -72,6 +73,7 @@ private fun OffhandRoot(container: AppContainer) {
     val listening by viewModel.listening.collectAsStateWithLifecycle()
     val partial by viewModel.partial.collectAsStateWithLifecycle()
     val draft by viewModel.draft.collectAsStateWithLifecycle()
+    val ocrOpen by viewModel.ocrOpen.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
 
     var contactsOpen by remember { mutableStateOf(false) }
@@ -87,7 +89,7 @@ private fun OffhandRoot(container: AppContainer) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            if (draft == null) {
+            if (draft == null && !ocrOpen) {
                 NavigationBar {
                     NavigationBarItem(
                         selected = tab == Tab.HOME,
@@ -110,6 +112,12 @@ private fun OffhandRoot(container: AppContainer) {
         val contentModifier = Modifier.padding(padding)
         val currentDraft = draft
         when {
+            ocrOpen -> com.offhand.ui.OcrScreen(
+                onCaptured = viewModel::onOcrPhoto,
+                onClose = viewModel::closeOcr,
+                modifier = contentModifier,
+            )
+
             currentDraft != null -> ConfirmationScreen(
                 draft = currentDraft,
                 online = online,
@@ -128,6 +136,7 @@ private fun OffhandRoot(container: AppContainer) {
                 onPressStart = viewModel::startPtt,
                 onPressEnd = viewModel::stopPtt,
                 onContactsClick = { contactsOpen = true },
+                onCameraClick = viewModel::openOcr,
                 modifier = contentModifier,
             )
 

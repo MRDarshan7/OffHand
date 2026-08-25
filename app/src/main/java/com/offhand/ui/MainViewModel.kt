@@ -82,6 +82,9 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
     private val _draft = MutableStateFlow<DraftUi?>(null)
     val draft: StateFlow<DraftUi?> = _draft.asStateFlow()
 
+    private val _ocrOpen = MutableStateFlow(false)
+    val ocrOpen: StateFlow<Boolean> = _ocrOpen.asStateFlow()
+
     /** One-shot user-facing message; UI consumes it. */
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
@@ -101,6 +104,8 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
                             handleFinalTranscript(text)
                         }
                     }
+
+                    is DebugCommand.InjectOcrImage -> onOcrPhoto(cmd.path)
                 }
             }
         }
@@ -267,6 +272,42 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         viewModelScope.launch {
             container.coordinator.cancel(d.actionId)
             _draft.value = null
+        }
+    }
+
+    // ---- OCR (photo -> prefilled note draft) ---------------------------
+
+    fun openOcr() {
+        _ocrOpen.value = true
+    }
+
+    fun closeOcr() {
+        _ocrOpen.value = false
+    }
+
+    fun onOcrPhoto(path: String) {
+        viewModelScope.launch {
+            val text = com.offhand.ocr.OcrEngine.recognizeFile(container.appContext, path)
+            _ocrOpen.value = false
+            if (text.isNullOrBlank()) {
+                _message.value = "No text found in the photo"
+                return@launch
+            }
+            val validated = Validator(
+                ContactResolver(container.contactDao.getAll().map { Contact(it.name, it.email) }),
+                container.dateResolver,
+            ).validate(
+                ActionDraft(
+                    type = ActionType.CAPTURE_NOTE,
+                    slots = Slots(body = text),
+                    confidence = Confidence.HIGH,
+                    transcript = "(captured from camera)",
+                ),
+            )
+            val entity = container.actionRepository.createDraft(
+                validated.type, StoredSlots.from(validated), validated.transcript,
+            )
+            _draft.value = validated.toUi(entity.id)
         }
     }
 
