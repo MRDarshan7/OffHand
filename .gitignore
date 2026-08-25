@@ -1,0 +1,25 @@
+# Gradle
+.gradle/
+build/
+
+# Android / IDE
+local.properties
+*.iml
+.idea/
+captures/
+.externalNativeBuild/
+.cxx/
+output-metadata.json
+
+# Secrets & keystores — never commit
+*.keystore
+*.jks
+
+# Model files — pushed to device via adb, never committed
+*.gguf
+*.zip
+app/src/main/assets/vosk-model*/
+
+# OS
+.DS_Store
+Thumbs.db
