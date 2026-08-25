@@ -26,6 +26,10 @@ class DebugHooksReceiver : BroadcastReceiver() {
             "com.offhand.DEBUG_WAV" -> intent.getStringExtra("path")?.let {
                 app.container.debugBus.tryEmit(DebugCommand.InjectWav(it))
             }
+
+            "com.offhand.DEBUG_OCR" -> intent.getStringExtra("path")?.let {
+                app.container.debugBus.tryEmit(DebugCommand.InjectOcrImage(it))
+            }
         }
     }
 }

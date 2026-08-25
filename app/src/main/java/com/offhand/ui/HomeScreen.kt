@@ -37,6 +37,7 @@ fun HomeScreen(
     onPressStart: () -> Unit,
     onPressEnd: () -> Unit,
     onContactsClick: () -> Unit,
+    onCameraClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -53,6 +54,9 @@ fun HomeScreen(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.weight(1f).padding(start = 8.dp, top = 8.dp),
             )
+            IconButton(onClick = onCameraClick) {
+                Text("📷", style = MaterialTheme.typography.titleMedium)
+            }
             IconButton(onClick = onContactsClick) {
                 Icon(Icons.Filled.Person, contentDescription = "Contacts")
             }

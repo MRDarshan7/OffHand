@@ -9,6 +9,7 @@
             <intent-filter>
                 <action android:name="com.offhand.DEBUG_TRANSCRIPT" />
                 <action android:name="com.offhand.DEBUG_WAV" />
+                <action android:name="com.offhand.DEBUG_OCR" />
             </intent-filter>
         </receiver>
     </application>
