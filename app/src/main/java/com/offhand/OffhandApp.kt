@@ -25,8 +25,16 @@ class OffhandApp : Application() {
         appScope.launch {
             // A SENDING item with no recorded result returns to QUEUED.
             container.actionRepository.recoverInterruptedSends()
+            // Anything already queued gets a work request on every launch.
+            container.dispatcher.drainQueued()
             // Model loads once at app start; PTT presses reuse it.
             container.asrEngine.initialize()
+        }
+        appScope.launch {
+            // Immediate drain the moment connectivity returns.
+            container.connectivityObserver.online.collect { online ->
+                if (online) container.dispatcher.drainQueued()
+            }
         }
     }
 }

@@ -6,8 +6,10 @@ import com.offhand.action.ActionCoordinator
 import com.offhand.action.ActionExecutor
 import com.offhand.action.ActionRepository
 import com.offhand.action.CalendarExecutor
+import com.offhand.action.EmailExecutor
 import com.offhand.action.NoteExecutor
 import com.offhand.action.ReminderExecutor
+import com.offhand.action.SmtpConfig
 import com.offhand.audio.AsrEngine
 import com.offhand.data.ActionDao
 import com.offhand.data.ContactDao
@@ -15,9 +17,13 @@ import com.offhand.data.NoteDao
 import com.offhand.data.OffhandDatabase
 import com.offhand.debug.DebugCommand
 import com.offhand.dispatch.ConnectivityObserver
+import com.offhand.dispatch.Dispatcher
 import com.offhand.parse.ActionType
 import com.offhand.parse.DateResolver
 import com.offhand.parse.DeterministicActionParser
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
 import java.time.LocalDateTime
 
@@ -50,14 +56,36 @@ class AppContainer(context: Context) {
 
     val actionRepository = ActionRepository(actionDao)
 
+    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     private val executors: Map<ActionType, ActionExecutor> = mapOf(
         ActionType.CREATE_EVENT to CalendarExecutor(appContext),
         ActionType.SET_REMINDER to ReminderExecutor(appContext),
         ActionType.CAPTURE_NOTE to NoteExecutor(noteDao),
     )
 
-    /** M4 replaces the no-op with the WorkManager dispatcher hook. */
-    val coordinator = ActionCoordinator(actionRepository, executors)
+    /** Executors that need a network; the dispatch worker looks up here. */
+    val networkExecutors: Map<ActionType, ActionExecutor> = mapOf(
+        ActionType.SEND_EMAIL to EmailExecutor(
+            SmtpConfig(
+                host = BuildConfig.SMTP_HOST,
+                port = BuildConfig.SMTP_PORT,
+                username = BuildConfig.SMTP_USER,
+                password = BuildConfig.SMTP_PASS,
+                from = BuildConfig.SMTP_FROM,
+                starttls = BuildConfig.SMTP_STARTTLS,
+            ),
+        ),
+        // M5 adds the laptop-bridge executors.
+    )
+
+    val dispatcher = Dispatcher(appContext, actionRepository, appScope)
+
+    val coordinator = ActionCoordinator(
+        actionRepository,
+        executors,
+        onQueued = { actionId -> dispatcher.enqueue(actionId) },
+    )
 
     /** Debug-build injection channel; no-op in release. */
     val debugBus = MutableSharedFlow<DebugCommand>(extraBufferCapacity = 8)
