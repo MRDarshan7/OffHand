@@ -132,6 +132,8 @@ private fun OffhandRoot(container: AppContainer) {
                 online = online,
                 asrReady = asrReady,
                 listening = listening,
+                parsing = viewModel.parsing.collectAsStateWithLifecycle().value,
+                parserStatus = viewModel.parserStatus.collectAsStateWithLifecycle().value,
                 partial = partial,
                 onPressStart = viewModel::startPtt,
                 onPressEnd = viewModel::stopPtt,

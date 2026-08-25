@@ -3,7 +3,8 @@
 An offline-first, on-device voice assistant for Android.
 
 ```
-push-to-talk voice → on-device ASR (Vosk) → deterministic parser
+push-to-talk voice → on-device ASR (Vosk)
+  → on-device LLM parse (llama.cpp · Qwen2.5-1.5B · GBNF grammar-constrained JSON)
   → independent validation → editable confirmation card
   → durable outbox (Room) → execute now if online / queue if offline
   → auto-dispatch when connectivity returns (WorkManager)
@@ -25,15 +26,22 @@ confirmation card, never guesses.
 
 ## Product decision log
 
-- **2026-08-25 — No on-device LLM.** The target phone cannot run local LLMs,
-  so the deterministic keyword/regex parser (the locked fallback in the build
-  spec) *is* the product. `ActionParser` stays an interface so an LLM could
-  slot in later. Claim: rule-parsed, not LLM-parsed. Consequence: no
-  llama.cpp, no NDK, no GGUF anywhere.
-- **2026-08-25 — Emulator-verified, not phone-verified.** No physical device
-  was available during the build; milestone acceptance ran on an Android
-  emulator (API 30, software rendering). Real-phone verification is the first
-  thing to do when hardware appears.
+- **2026-08-26 — The LLM is the product (reversal of 2026-08-25).** This is
+  an on-device-AI project; M1 is implemented as originally locked: llama.cpp
+  via JNI (pinned tag b4658, vendored at `third_party/llama.cpp`, not
+  committed), Qwen2.5-1.5B-Instruct Q4_K_M GGUF loaded from the app's
+  external files dir, GBNF grammar (`app/src/main/assets/action_schema.gbnf`)
+  forcing schema-valid JSON, behind the `ActionParser` interface. The
+  deterministic parser remains as the runtime fallback ONLY (native lib or
+  model missing / invalid output) and every fallback is logged and shown in
+  the UI status line — never silent. Native build targets arm64-v8a only,
+  so the APK no longer installs on x86 emulators.
+- **2026-08-25 — No on-device LLM.** *(Superseded above.)*
+- **2026-08-26 — Device verification PENDING.** No physical phone was
+  available and the machine cannot run an emulator (no hypervisor; 8 GB RAM).
+  All on-device milestone acceptance waits for real hardware — see the
+  checklist below. Off-device: 61 JVM tests, PC-side ASR eval, and the LLM
+  parser eval (same GGUF + grammar + prompt as the phone, x64 llama-cli).
 - **Email delivery is verified against a local SMTP sink** (no credentials
   were available). Gmail is a config swap in `local.properties`
   (see below) and remains UNVERIFIED against a live account.
@@ -43,13 +51,18 @@ confirmation card, never guesses.
 1. Install JDK 17 and the Android SDK (this machine: `E:\jdk-17\...`,
    `E:\Android\Sdk` — see `local.properties`).
 2. Clone this repo; `local.properties` needs `sdk.dir=<your sdk>`.
-3. Download `vosk-model-small-en-us-0.15` (alphacephei.com/vosk/models) and
-   unzip — this machine keeps it at `E:\offhand-models\`.
+3. Download models to `E:\offhand-models\`: `vosk-model-small-en-us-0.15`
+   (alphacephei.com/vosk/models, unzip) and
+   `qwen2.5-1.5b-instruct-q4_k_m.gguf`
+   (huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF). Vendor llama.cpp:
+   `git clone --depth 1 --branch b4658 https://github.com/ggml-org/llama.cpp third_party/llama.cpp`
+   (NDK 27.2 + CMake 3.22 must be installed in the SDK).
 4. Build: `.\gradlew.bat assembleDebug`
    (with `JAVA_HOME` set to the JDK 17 path).
 5. Install: `adb install -r app\build\outputs\apk\debug\app-debug.apk`
-6. Launch the app once (creates its storage dirs), then push the ASR model:
+6. Launch the app once (creates its storage dirs), then push both models:
    `adb push E:\offhand-models\vosk-model-small-en-us-0.15 /sdcard/Android/data/com.offhand/files/vosk-model-small-en-us-0.15`
+   `adb push E:\offhand-models\qwen2.5-1.5b-instruct-q4_k_m.gguf /sdcard/Android/data/com.offhand/files/qwen2.5-1.5b-instruct-q4_k_m.gguf`
 7. Start the SMTP sink on the PC: `py tools\smtp_sink\smtp_sink.py 2525`
    (or point `local.properties` at a real SMTP account — see below).
 8. Start the laptop bridge: `py bridge-daemon\bridge_daemon.py E:\offhand-shared 8787`

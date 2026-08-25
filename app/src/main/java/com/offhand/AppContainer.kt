@@ -22,6 +22,9 @@ import com.offhand.data.OffhandDatabase
 import com.offhand.debug.DebugCommand
 import com.offhand.dispatch.ConnectivityObserver
 import com.offhand.dispatch.Dispatcher
+import com.offhand.llm.CompositeActionParser
+import com.offhand.llm.LlamaActionParser
+import com.offhand.llm.LlamaEngine
 import com.offhand.parse.ActionType
 import com.offhand.parse.DateResolver
 import com.offhand.parse.DeterministicActionParser
@@ -54,7 +57,14 @@ class AppContainer(context: Context) {
     val connectivityObserver = ConnectivityObserver(appContext)
 
     val dateResolver = DateResolver { LocalDateTime.now() }
-    val parser = DeterministicActionParser(dateResolver)
+
+    /** Primary parser: on-device LLM; deterministic rules as visible fallback. */
+    val llamaEngine = LlamaEngine(appContext)
+    val parser = CompositeActionParser(
+        llamaEngine,
+        LlamaActionParser(llamaEngine),
+        DeterministicActionParser(dateResolver),
+    )
 
     val asrEngine = AsrEngine(appContext)
 

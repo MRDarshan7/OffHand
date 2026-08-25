@@ -27,8 +27,10 @@ class OffhandApp : Application() {
             container.actionRepository.recoverInterruptedSends()
             // Anything already queued gets a work request on every launch.
             container.dispatcher.drainQueued()
-            // Model loads once at app start; PTT presses reuse it.
+            // Models load once at app start; PTT presses reuse them.
             container.asrEngine.initialize()
+            container.llamaEngine.initialize()
+            container.parser.refreshStatus()
         }
         appScope.launch {
             // Immediate drain the moment connectivity returns.

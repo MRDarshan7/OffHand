@@ -33,6 +33,8 @@ fun HomeScreen(
     online: Boolean,
     asrReady: Boolean,
     listening: Boolean,
+    parsing: Boolean,
+    parserStatus: String,
     partial: String,
     onPressStart: () -> Unit,
     onPressEnd: () -> Unit,
@@ -108,6 +110,7 @@ fun HomeScreen(
                 Spacer(Modifier.height(20.dp))
                 Text(
                     text = when {
+                        parsing -> "Thinking…"
                         listening && partial.isNotBlank() -> partial
                         listening -> "…"
                         !asrReady -> "Preparing speech engine…"
@@ -120,6 +123,16 @@ fun HomeScreen(
                 )
             }
         }
+
+        Text(
+            text = parserStatus,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 10.dp),
+        )
     }
 }
 

@@ -85,6 +85,12 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
     private val _ocrOpen = MutableStateFlow(false)
     val ocrOpen: StateFlow<Boolean> = _ocrOpen.asStateFlow()
 
+    private val _parsing = MutableStateFlow(false)
+    val parsing: StateFlow<Boolean> = _parsing.asStateFlow()
+
+    /** "on-device LLM" vs "rules fallback — reason"; never silent. */
+    val parserStatus: StateFlow<String> = container.parser.status
+
     /** One-shot user-facing message; UI consumes it. */
     private val _message = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = _message.asStateFlow()
@@ -163,18 +169,25 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
     private suspend fun handleFinalTranscript(transcript: String) {
         _partial.value = ""
         _listening.value = false
-        val validated = validate(transcript)
-        val entity = container.actionRepository.createDraft(
-            validated.type, StoredSlots.from(validated), transcript,
-        )
-        _draft.value = validated.toUi(entity.id)
+        _parsing.value = true
+        try {
+            val validated = validate(transcript)
+            val entity = container.actionRepository.createDraft(
+                validated.type, StoredSlots.from(validated), transcript,
+            )
+            _draft.value = validated.toUi(entity.id)
+        } finally {
+            _parsing.value = false
+        }
     }
 
-    private suspend fun validate(transcript: String): ValidatedDraft {
-        val contactList = container.contactDao.getAll().map { Contact(it.name, it.email) }
-        val validator = Validator(ContactResolver(contactList), container.dateResolver)
-        return validator.validate(container.parser.parse(transcript))
-    }
+    private suspend fun validate(transcript: String): ValidatedDraft =
+        withContext(Dispatchers.Default) {
+            // LLM inference takes seconds on-device; never on the main thread.
+            val contactList = container.contactDao.getAll().map { Contact(it.name, it.email) }
+            val validator = Validator(ContactResolver(contactList), container.dateResolver)
+            validator.validate(container.parser.parse(transcript))
+        }
 
     // ---- draft editing -------------------------------------------------
 

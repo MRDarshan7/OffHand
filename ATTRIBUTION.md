@@ -13,6 +13,8 @@ weights are committed to this repo.
 | AndroidX Room (runtime, ktx, compiler) | 2.6.1 | Apache-2.0 | Durable outbox, contacts, notes |
 | AndroidX WorkManager | 2.10.0 | Apache-2.0 | Offline→online dispatch |
 | kotlinx.serialization-json | 1.8.0 | Apache-2.0 | Strict slot persistence |
+| llama.cpp (vendored source, tag b4658, not committed) | b4658 | MIT | On-device LLM inference + GBNF grammar-constrained decoding |
+| Qwen2.5-1.5B-Instruct GGUF (Q4_K_M) | Qwen2.5 | Apache-2.0 | Action parser model (staged at E:\offhand-models, pushed via adb, never committed) |
 | Vosk (vosk-android) | 0.3.47 | Apache-2.0 | On-device streaming ASR |
 | vosk-model-small-en-us-0.15 | 0.15 | Apache-2.0 | English ASR model (staged at E:\offhand-models, pushed via adb, never committed) |
 | JNA | 5.13.0 | Apache-2.0 / LGPL-2.1 (dual, Apache elected) | Vosk native binding |
