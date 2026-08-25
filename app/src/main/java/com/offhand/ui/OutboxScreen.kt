@@ -3,6 +3,7 @@ package com.offhand.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,14 +16,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.offhand.action.MAX_ATTEMPTS
+import com.offhand.action.StoredSlots
 import com.offhand.data.ActionEntity
+import com.offhand.data.ActionState
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private val timestampFormat = DateTimeFormatter.ofPattern("d MMM, HH:mm")
+private val Amber = Color(0xFFE0B354)
 
 @Composable
 fun OutboxScreen(actions: List<ActionEntity>, modifier: Modifier = Modifier) {
@@ -38,7 +45,7 @@ fun OutboxScreen(actions: List<ActionEntity>, modifier: Modifier = Modifier) {
     } else {
         LazyColumn(
             modifier = modifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+            contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             items(actions, key = { it.id }) { action ->
@@ -50,6 +57,10 @@ fun OutboxScreen(actions: List<ActionEntity>, modifier: Modifier = Modifier) {
 
 @Composable
 private fun ActionRow(action: ActionEntity) {
+    val slots = runCatching { StoredSlots.decode(action.slotsJson) }.getOrNull()
+    val needsAttention =
+        action.state == ActionState.FAILED.name && action.attempts >= MAX_ATTEMPTS
+
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -57,13 +68,34 @@ private fun ActionRow(action: ActionEntity) {
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = action.type,
+                    text = typeLabel(action, slots),
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Text(
-                    text = action.state,
+                    text = stateCopy(action),
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = when {
+                        needsAttention -> Amber
+                        else -> MaterialTheme.colorScheme.primary
+                    },
+                )
+            }
+            preview(slots)?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (needsAttention && action.lastError != null) {
+                Text(
+                    text = action.lastError,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Amber,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             Text(
@@ -76,3 +108,30 @@ private fun ActionRow(action: ActionEntity) {
         }
     }
 }
+
+private fun typeLabel(action: ActionEntity, slots: StoredSlots?): String =
+    when (action.type) {
+        "send_email" -> slots?.recipientName?.let { "Email to $it" } ?: "Email"
+        "create_event" -> "Calendar event"
+        "set_reminder" -> "Reminder"
+        "fetch_laptop_file" -> "File from laptop"
+        "get_laptop_clipboard" -> "Laptop clipboard"
+        "capture_note" -> "Note"
+        else -> action.type
+    }
+
+/** Per-state copy (master spec M5c). Offline is calm, never an error. */
+private fun stateCopy(action: ActionEntity): String = when (action.state) {
+    ActionState.DRAFT.name -> "Draft"
+    ActionState.CONFIRMED.name -> "Confirmed"
+    ActionState.QUEUED.name -> "Saved locally — will send when connected"
+    ActionState.SENDING.name -> "Sending…"
+    ActionState.DONE.name -> if (action.type == "send_email") "Sent" else "Done"
+    ActionState.CANCELLED.name -> "Cancelled"
+    ActionState.FAILED.name ->
+        if (action.attempts >= MAX_ATTEMPTS) "Needs attention" else "Will retry"
+    else -> action.state
+}
+
+private fun preview(slots: StoredSlots?): String? =
+    slots?.subject ?: slots?.body ?: slots?.pathHint
