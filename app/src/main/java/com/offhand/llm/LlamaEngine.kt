@@ -75,7 +75,11 @@ class LlamaEngine(private val context: Context) {
     companion object {
         private const val TAG = "LlamaEngine"
         const val MODEL_FILE_NAME = "qwen2.5-1.5b-instruct-q4_k_m.gguf"
-        private const val N_CTX = 1024
+
+        // Spec said n_ctx 1024, but the few-shot prompt alone is ~950 tokens;
+        // 1024 would fail the prompt+output fit check on every call and force
+        // the fallback parser. 2048 costs ~56 MB KV — a reported deviation.
+        private const val N_CTX = 2048
         private const val N_THREADS = 4
         private const val MAX_TOKENS = 256
 
