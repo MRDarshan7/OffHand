@@ -25,6 +25,10 @@ remind me to submit the lab record tomorrow morning<|im_end|>
 <|im_start|>assistant
 {"action": "set_reminder", "slots": {"recipient": null, "subject": null, "body": "submit the lab record", "datetime": "tomorrow morning", "path_hint": null}, "confidence": "high"}<|im_end|>
 <|im_start|>user
+remind me to return the library book<|im_end|>
+<|im_start|>assistant
+{"action": "set_reminder", "slots": {"recipient": null, "subject": null, "body": "return the library book", "datetime": null, "path_hint": null}, "confidence": "high"}<|im_end|>
+<|im_start|>user
 get the quarterly report file from my laptop<|im_end|>
 <|im_start|>assistant
 {"action": "fetch_laptop_file", "slots": {"recipient": null, "subject": null, "body": null, "datetime": null, "path_hint": "quarterly report"}, "confidence": "high"}<|im_end|>
