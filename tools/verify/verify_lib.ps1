@@ -56,11 +56,13 @@ function Inject-Transcript {
     Start-Sleep -Seconds 3
 }
 
+# API 30 has no `cmd connectivity airplane-mode`; svc covers wifi + data.
 function Set-Airplane {
     param([bool]$On)
-    $state = if ($On) { "enable" } else { "disable" }
-    & $script:ADB shell cmd connectivity airplane-mode $state | Out-Null
-    Start-Sleep -Seconds 6
+    $state = if ($On) { "disable" } else { "enable" }
+    & $script:ADB shell svc wifi $state | Out-Null
+    & $script:ADB shell svc data $state | Out-Null
+    Start-Sleep -Seconds 8
 }
 
 function Query-Db {
