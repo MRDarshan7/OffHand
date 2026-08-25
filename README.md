@@ -1,62 +1,118 @@
 # OFFHAND
 
-An offline-first, on-device voice assistant for Android. Push-to-talk voice →
-on-device speech recognition (Vosk) → **deterministic parser** → independent
-validation → editable confirmation card → durable outbox (Room) → execute now
-if online / queue if offline → auto-dispatch when connectivity returns
-(WorkManager).
+An offline-first, on-device voice assistant for Android.
 
-## Product decision log
+```
+push-to-talk voice → on-device ASR (Vosk) → deterministic parser
+  → independent validation → editable confirmation card
+  → durable outbox (Room) → execute now if online / queue if offline
+  → auto-dispatch when connectivity returns (WorkManager)
+```
 
-- **2026-08-25 — No on-device LLM.** The target phone cannot run local LLMs,
-  so the deterministic keyword/regex parser (the locked fallback in the build
-  spec) *is* the product. The `ActionParser` interface is kept so an LLM
-  implementation could be slotted in later. The product claim is
-  "rule-parsed", not "LLM-parsed". Consequence: no llama.cpp, no NDK, no GGUF.
+Offline is a first-class state, never an error. Nothing irreversible executes
+without a human tap. The reasoning path (ASR → parse → validate → draft →
+queue) makes zero network calls; only delivery (SMTP, laptop bridge) touches
+a network.
 
 ## The six actions
 
 `send_email` · `create_event` · `set_reminder` · `fetch_laptop_file` ·
 `get_laptop_clipboard` · `capture_note`
 
-Anything else becomes a `capture_note` with the transcript as the body — the
-safe default. Nothing irreversible executes without a human tap on the
-confirmation card. Offline is a first-class state, never an error.
+Anything out of scope becomes a `capture_note` with the transcript as body —
+the safe default. Unresolvable fields become amber "check this" flags on the
+confirmation card, never guesses.
 
-## Toolchain (this machine)
+## Product decision log
 
-Everything lives on `E:` — the C: drive is deliberately untouched:
+- **2026-08-25 — No on-device LLM.** The target phone cannot run local LLMs,
+  so the deterministic keyword/regex parser (the locked fallback in the build
+  spec) *is* the product. `ActionParser` stays an interface so an LLM could
+  slot in later. Claim: rule-parsed, not LLM-parsed. Consequence: no
+  llama.cpp, no NDK, no GGUF anywhere.
+- **2026-08-25 — Emulator-verified, not phone-verified.** No physical device
+  was available during the build; milestone acceptance ran on an Android
+  emulator (API 30, software rendering). Real-phone verification is the first
+  thing to do when hardware appears.
+- **Email delivery is verified against a local SMTP sink** (no credentials
+  were available). Gmail is a config swap in `local.properties`
+  (see below) and remains UNVERIFIED against a live account.
 
-| Thing | Path |
-|---|---|
-| JDK 17 (Temurin) | `E:\jdk-17\jdk-17.0.20.1+1` |
-| Android SDK (cmdline-tools, platform 35, build-tools 35) | `E:\Android\Sdk` |
-| Gradle 8.11.1 distribution | `E:\gradle\gradle-8.11.1` |
-| Gradle caches (`GRADLE_USER_HOME`) | `E:\gradle-home` |
-| Vosk model (small en-us 0.15) | `E:\offhand-models` |
+## Setup (10 steps)
 
-## Build & install
+1. Install JDK 17 and the Android SDK (this machine: `E:\jdk-17\...`,
+   `E:\Android\Sdk` — see `local.properties`).
+2. Clone this repo; `local.properties` needs `sdk.dir=<your sdk>`.
+3. Download `vosk-model-small-en-us-0.15` (alphacephei.com/vosk/models) and
+   unzip — this machine keeps it at `E:\offhand-models\`.
+4. Build: `.\gradlew.bat assembleDebug`
+   (with `JAVA_HOME` set to the JDK 17 path).
+5. Install: `adb install -r app\build\outputs\apk\debug\app-debug.apk`
+6. Launch the app once (creates its storage dirs), then push the ASR model:
+   `adb push E:\offhand-models\vosk-model-small-en-us-0.15 /sdcard/Android/data/com.offhand/files/vosk-model-small-en-us-0.15`
+7. Start the SMTP sink on the PC: `py tools\smtp_sink\smtp_sink.py 2525`
+   (or point `local.properties` at a real SMTP account — see below).
+8. Start the laptop bridge: `py bridge-daemon\bridge_daemon.py E:\offhand-shared 8787`
+9. On a real phone, set `offhand.bridge.host` / `offhand.smtp.host` in
+   `local.properties` to the laptop's LAN IP and rebuild. On the emulator the
+   defaults (`10.0.2.2`) already point at the host.
+10. Hold the button and speak. Long-press the OFFHAND title to reset demo data.
 
-```powershell
-# from the repo root
-$env:JAVA_HOME = "E:\jdk-17\jdk-17.0.20.1+1"
-$env:GRADLE_USER_HOME = "E:\gradle-home"
-.\gradlew.bat assembleDebug
-E:\Android\Sdk\platform-tools\adb.exe install -r app\build\outputs\apk\debug\app-debug.apk
+### local.properties keys (all optional, git-ignored)
+
+```
+offhand.smtp.host=smtp.gmail.com      # default 10.0.2.2 (dev sink)
+offhand.smtp.port=587                 # default 2525
+offhand.smtp.user=you@gmail.com       # default empty (no auth)
+offhand.smtp.pass=<app password>      # NEVER commit; default empty
+offhand.smtp.from=you@gmail.com
+offhand.smtp.starttls=true            # default false
+offhand.bridge.host=192.168.x.x       # default 10.0.2.2
+offhand.bridge.port=8787
 ```
 
 ## Manual verification checklist
 
-- [ ] **M0:** Online/Offline banner flips live when airplane mode toggles.
-- [ ] **M3:** queue an action, force-stop the app, reboot — item still QUEUED.
-- [ ] **M4:** airplane mode on → queue two emails → airplane mode off → both
-      arrive within 60 s, exactly once each. Three consecutive runs.
-- [ ] **M6:** full end-to-end flow five times consecutively without failure;
-      network audit — zero connection attempts on the reasoning path.
+- [ ] **M0:** Online/"Working offline" banner flips when airplane mode toggles.
+- [ ] **M2:** voice (or `DEBUG_WAV`) → correct editable draft in < 4 s.
+- [ ] **M3:** queue an email offline, force-stop the app, reboot — item is
+      still QUEUED with correct content.
+- [ ] **M4:** airplane on → queue two emails → airplane off → both arrive
+      within 60 s, exactly once each; three consecutive runs.
+- [ ] **M6:** five consecutive end-to-end runs without failure; network audit
+      (airplane mode + full reasoning path = zero connection attempts).
 
-## Milestones
+## Testing
 
-M0 skeleton · M1 deterministic parser + validator + eval harness (JVM) ·
-M2 voice → validated draft · M3 confirmation + durable queue ·
-M4 offline → online dispatch · M5 laptop bridge / OCR / outbox polish ·
-M6 hardening.
+- `.\gradlew.bat :app:testDebugUnitTest` — 61 JVM tests: parser eval harness
+  (26 transcripts incl. real ASR degradations), DateResolver, ContactResolver,
+  Validator, state machine.
+- `tools\asr_eval` — PC-side Vosk check over Windows-TTS WAVs.
+- Debug-only injection hooks (absent in release):
+  `adb shell am broadcast -a com.offhand.DEBUG_TRANSCRIPT --es text "..." com.offhand`
+  (also `DEBUG_WAV`, `DEBUG_OCR` with `--es path`).
+
+## Security & privacy
+
+Secrets only in `local.properties` → BuildConfig. Logs carry action types,
+states and timings — never bodies, recipients, transcripts or audio. The
+bridge daemon is a GET-only dev daemon serving one whitelisted folder with
+traversal rejected. No analytics, no crash reporters.
+
+## Repository layout
+
+```
+app/src/main/java/com/offhand/
+  audio/     Vosk ASR engine (init once, streaming partials, WAV debug path)
+  parse/     ActionParser · DeterministicActionParser · DateResolver ·
+             ContactResolver · Validator  (pure Kotlin, fully JVM-tested)
+  action/    ActionRepository (state machine) · executors · coordinator
+  data/      Room: actions, contacts (seeded, editable), notes
+  dispatch/  ConnectivityObserver · Dispatcher · DispatchWorker
+  bridge/    LaptopBridge interface + HTTP client (Office Kit stays UNKNOWN)
+  ocr/       ML Kit text recognition (bundled, offline)
+  ui/        Home · Confirmation · Outbox · contacts dialog · OCR capture
+  demo/      DemoSeeder (long-press reset)
+bridge-daemon/    Python dev daemon (GET-only, whitelisted folder)
+tools/parser_eval tools/asr_eval tools/smtp_sink tools/verify
+```
