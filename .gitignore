@@ -26,3 +26,6 @@ third_party/
 # OS
 .DS_Store
 Thumbs.db
+
+# Eval scratch
+tools/llm_eval/_prompt.tmp.txt
