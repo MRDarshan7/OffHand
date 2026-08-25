@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
 }
 
@@ -50,6 +51,12 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.kotlinx.serialization.json)
+
+    // Vosk on-device ASR (streaming, 16 kHz). JNA must be the aar packaging.
+    implementation(libs.vosk.android)
+    implementation("net.java.dev.jna:jna:5.13.0@aar")
 
     testImplementation(libs.junit)
 
