@@ -20,6 +20,9 @@ output-metadata.json
 *.zip
 app/src/main/assets/vosk-model*/
 
+# Vendored native sources — cloned at a pinned tag (see README), not committed
+third_party/
+
 # OS
 .DS_Store
 Thumbs.db

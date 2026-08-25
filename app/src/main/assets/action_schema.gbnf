@@ -1,0 +1,8 @@
+root ::= "{" ws "\"action\"" ws ":" ws action ws "," ws "\"slots\"" ws ":" ws slots ws "," ws "\"confidence\"" ws ":" ws conf ws "}"
+action ::= "\"send_email\"" | "\"create_event\"" | "\"set_reminder\"" | "\"fetch_laptop_file\"" | "\"get_laptop_clipboard\"" | "\"capture_note\""
+slots ::= "{" ws "\"recipient\"" ws ":" ws sn ws "," ws "\"subject\"" ws ":" ws sn ws "," ws "\"body\"" ws ":" ws sn ws "," ws "\"datetime\"" ws ":" ws sn ws "," ws "\"path_hint\"" ws ":" ws sn ws "}"
+conf ::= "\"high\"" | "\"low\""
+sn ::= str | "null"
+str ::= "\"" chr* "\""
+chr ::= [^"\\\x00-\x1f] | "\\" (["\\/bfnrt] | "u" [0-9a-fA-F]{4})
+ws ::= [ \t\n]?
