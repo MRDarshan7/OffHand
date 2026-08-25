@@ -1,6 +1,6 @@
 # OFFHAND
 
-An offline-first, on-device voice assistant for Android.
+An offline-first, on-device voice assistant for Android
 
 ```
 push-to-talk voice → on-device ASR (Vosk)
@@ -24,7 +24,7 @@ Anything out of scope becomes a `capture_note` with the transcript as body —
 the safe default. Unresolvable fields become amber "check this" flags on the
 confirmation card, never guesses.
 
-## Product decision log
+## Product decision logs
 
 - **2026-08-26 — The LLM is the product (reversal of 2026-08-25).** This is
   an on-device-AI project; M1 is implemented as originally locked: llama.cpp
