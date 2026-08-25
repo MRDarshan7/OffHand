@@ -315,6 +315,16 @@ class MainViewModel(private val container: AppContainer) : ViewModel() {
         _message.value = null
     }
 
+    // ---- demo reset ----------------------------------------------------
+
+    fun resetDemoData() {
+        viewModelScope.launch {
+            com.offhand.demo.DemoSeeder(container).reset()
+            _draft.value = null
+            _message.value = "Demo data reset"
+        }
+    }
+
     // ---- contacts ------------------------------------------------------
 
     fun addContact(name: String, email: String) {

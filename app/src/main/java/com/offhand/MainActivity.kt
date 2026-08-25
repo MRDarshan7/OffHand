@@ -137,6 +137,7 @@ private fun OffhandRoot(container: AppContainer) {
                 onPressEnd = viewModel::stopPtt,
                 onContactsClick = { contactsOpen = true },
                 onCameraClick = viewModel::openOcr,
+                onTitleLongPress = viewModel::resetDemoData,
                 modifier = contentModifier,
             )
 

@@ -197,6 +197,21 @@ class ParserEvalHarnessTest {
         assertEquals(Confidence.LOW, v.confidence)
     }
 
+    // Real ASR degradations observed with Vosk small-en on synthetic speech:
+    // the parser must degrade SAFELY — fallback note, never a wrong action.
+
+    @Test fun `asr-mangled clipboard phrase degrades to note, not a wrong action`() {
+        val v = run("copy whatever is unlikely board")
+        assertEquals(ActionType.CAPTURE_NOTE, v.type)
+        assertEquals(Confidence.LOW, v.confidence)
+    }
+
+    @Test fun `asr-mangled note phrase still captures the content`() {
+        val v = run("no down by milk and eggs")
+        assertEquals(ActionType.CAPTURE_NOTE, v.type)
+        assertEquals("no down by milk and eggs", v.body.value)
+    }
+
     @Test fun `blank input is a note needing input`() {
         val v = run("")
         assertEquals(ActionType.CAPTURE_NOTE, v.type)

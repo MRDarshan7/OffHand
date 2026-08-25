@@ -38,6 +38,7 @@ fun HomeScreen(
     onPressEnd: () -> Unit,
     onContactsClick: () -> Unit,
     onCameraClick: () -> Unit,
+    onTitleLongPress: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -52,7 +53,13 @@ fun HomeScreen(
             Text(
                 "OFFHAND",
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.weight(1f).padding(start = 8.dp, top = 8.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 8.dp, top = 8.dp)
+                    .pointerInput(Unit) {
+                        // Demo reset lives behind a long-press (M6).
+                        detectTapGestures(onLongPress = { onTitleLongPress() })
+                    },
             )
             IconButton(onClick = onCameraClick) {
                 Text("📷", style = MaterialTheme.typography.titleMedium)
