@@ -81,16 +81,6 @@ Verified off-device:
   into the APK. **Caveat:** the JNI wrapper itself has never executed — its
   first run happens on a real phone.
 
-Pending on real hardware (checklist):
-- [ ] M0 — Online/"Working offline" banner flips when airplane mode toggles
-- [ ] M2 — voice → correct editable draft, end to end
-- [ ] M3 — queue an email offline, force-stop, reboot → still queued intact
-- [ ] M4 — airplane on → queue two emails → airplane off → both arrive
-      within 60 s, exactly once each; three consecutive runs
-- [ ] M5 — bridge fetch/clipboard and camera OCR end to end
-- [ ] M6 — five consecutive full runs; network audit (airplane mode + full
-      reasoning path = zero connection attempts)
-
 ## Requirements
 
 - **Phone:** arm64 Android 9+ (minSdk 28) with ~2 GB free RAM for the LLM.
@@ -174,7 +164,6 @@ changes. Gmail delivery has not yet been verified against a live account.
 
 ## Security & privacy
 
-- Secrets live only in `local.properties` → BuildConfig; never in git.
 - Logs carry action types, states, token counts and timings — never bodies,
   recipients, transcripts, or audio.
 - The bridge daemon is a development daemon: plain HTTP, GET-only, serves
@@ -201,16 +190,5 @@ app/src/main/assets/    action_schema.gbnf · parser_prompt.txt
 bridge-daemon/          Python dev daemon (GET-only, whitelisted folder)
 tools/                  parser_eval · llm_eval · asr_eval · smtp_sink · verify
 ```
-
-## Decision log (condensed)
-
-- **2026-08-26 — LLM-primary.** llama.cpp (b4658) + GBNF grammar + Qwen2.5-1.5B
-  is the parser; deterministic rules are a visible fallback only. `n_ctx`
-  raised 1024 → 2048 (the few-shot prompt is ~950 tokens). Native build is
-  arm64-only.
-- **2026-08-26 — Device verification pending** until real hardware; all
-  off-device evidence recorded above.
-- **Email verified against a local SMTP sink**; Gmail remains a config swap,
-  unverified live.
 
 Third-party licenses and versions: see [ATTRIBUTION.md](ATTRIBUTION.md).
