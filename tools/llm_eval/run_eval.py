@@ -91,11 +91,16 @@ CASES = [
 
 
 def run_model(transcript, template):
+    # Prompt goes via file, not argv: Windows ANSI argv mangles non-ASCII
+    # into invalid UTF-8, which the llama.cpp tokenizer aborts on.
     prompt = template.replace("{transcript}", transcript)
+    prompt_file = os.path.join(HERE, "_prompt.tmp.txt")
+    with open(prompt_file, "w", encoding="utf-8", newline="\n") as f:
+        f.write(prompt)
     cmd = [
         LLAMA_CLI, "-m", GGUF,
         "--grammar-file", GRAMMAR,
-        "-p", prompt,
+        "-f", prompt_file,
         "-n", "200", "--temp", "0",
         "-no-cnv", "--no-display-prompt", "--simple-io",
         "-t", "4", "-c", "1024",
